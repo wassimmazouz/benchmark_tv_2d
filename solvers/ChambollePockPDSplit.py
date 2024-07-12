@@ -54,7 +54,7 @@ class Solver(BaseSolver):
             'isotropic': dual_prox_tv_iso,
         }.get(self.isotropy, dual_prox_tv_aniso)
 
-        while callback(u):
+        while callback():
             u_old = u
             gh, gv = grad(u_bar)
             vh, vv = proj(vh + sigma_v * gh,
@@ -76,4 +76,4 @@ class Solver(BaseSolver):
         self.u = u
 
     def get_result(self):
-        return self.u
+        return dict(u=self.u)

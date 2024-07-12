@@ -48,7 +48,7 @@ class Solver(BaseSolver):
         u_old = u.copy()
 
         t_new = 1
-        while callback(u):
+        while callback():
             if self.use_acceleration:
                 t_old = t_new
                 t_new = (1 + np.sqrt(1 + 4 * t_old ** 2)) / 2
@@ -63,4 +63,4 @@ class Solver(BaseSolver):
         self.u = u
 
     def get_result(self):
-        return self.u
+        return dict(u=self.u)

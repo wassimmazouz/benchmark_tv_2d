@@ -54,7 +54,7 @@ class Solver(BaseSolver):
         Aty = self.A.T @ self.y
         AtA = LinearOperator(shape=(n * m, n * m),
                              matvec=lambda x: self.A.T @ (
-                                self.A @ x.reshape((n, m))))
+            self.A @ x.reshape((n, m))))
         proj = {
             'anisotropic': dual_prox_tv_aniso,
             'isotropic': dual_prox_tv_iso,
@@ -68,7 +68,7 @@ class Solver(BaseSolver):
         vv_acc = vv.copy()
 
         t_new = 1
-        while callback(u):
+        while callback():
             if self.use_acceleration:
                 t_old = t_new
                 t_new = (1 + np.sqrt(1 + 4 * t_old ** 2)) / 2
@@ -98,4 +98,4 @@ class Solver(BaseSolver):
         self.u = u
 
     def get_result(self):
-        return self.u
+        return dict(u=self.u)

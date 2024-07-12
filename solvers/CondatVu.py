@@ -52,7 +52,7 @@ class Solver(BaseSolver):
             'isotropic': dual_prox_tv_iso,
         }.get(self.isotropy, dual_prox_tv_aniso)
 
-        while callback(u):
+        while callback():
             u_tmp = (u - tau * grad_F(self.y, self.A, u,
                                       self.data_fit, self.delta)
                      + tau * div(vh, vv))
@@ -66,4 +66,4 @@ class Solver(BaseSolver):
         self.u = u
 
     def get_result(self):
-        return self.u
+        return dict(u=self.u)
