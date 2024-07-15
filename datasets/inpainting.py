@@ -25,13 +25,13 @@ class Dataset(BaseDataset):
     }
 
     def set_A(self, height):
-        return make_blur(self.type_A, height)
+        return make_blur(self.type_A, height, mask=0.5)
 
     def get_data(self):
         rng = np.random.RandomState(self.random_state)
         img = download.download(
-            "https://culturezvous.com/wp-content/uploads/2017/10/"
-            "chateau-azay-le-rideau.jpg?download=true", replace=False)
+            "https://culturezvous.com/wp-content/uploads/2017/10/chateau-azay-"
+            "le-rideau.jpg?download=true", "./cartoon/castle", replace=False)
 
         img = Image.open(img)
         img = (np.array(ImageOps.grayscale(img))
