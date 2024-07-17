@@ -12,8 +12,9 @@ class Solver(BaseSolver):
 
     parameters = {
         'inner': [True, False],
-        'alpha': [0.05, 0.1, 0.2],
-        'gamma': [0.5, 1]
+        'alpha': [0.05, 0.1],
+        'gamma': [0.5, 0.9, 1],
+        'a': [3]
     }
 
     stopping_criterion = SufficientProgressCriterion(
@@ -37,40 +38,51 @@ class Solver(BaseSolver):
             device = dinv.utils.get_freer_gpu()
         else:
             device = 'cpu'
-        tau = self.alpha / self.gamma
+
+        Anorm2 = 1
+        Lnorm2 = 8
+        tau = 0.9 / (Anorm2 / 2 + Lnorm2 * self.gamma)
         y = self.y
         reg = self.reg
         x = y.clone().to(device)
         x = x.unsqueeze(0)
         xk = x.unsqueeze(0)
+        wk = xk.clone().to(device)
+        uk = xk.clone().to(device)
         data_fidelity = L2()
         if self.inner:
             vk = torch.zeros_like(xk)
             prior = dinv.optim.TVPrior()
+            a = self.a
+        else:
+            prior = dinv.optim.L1Prior()
+            L = dinv.optim.TVPrior().nabla
+            L_adjoint = dinv.optim.TVPrior().nabla_adjoint
+            vk = L(xk)
 
-        for _ in range(n_iter):
+        for k in range(n_iter):
             if self.inner:
-                x_prev = xk.clone()
-                xk = data_fidelity.prox(xk - tau*vk, y, self.A.physics)
-                tmp = vk + self.gamma * (2 * xk - x_prev)
-                vk = tmp - self.gamma * prior.prox(tmp/self.gamma,
-                                                   gamma=reg/self.gamma)
+                tk = (k+a-1)/a
+
+                xk_prev = xk.clone()
+
+                xk = wk - self.gamma*data_fidelity.grad(wk, y, self.A.physics)
+                xk = prior.prox(xk, gamma=self.gamma*reg)
+
+                wk = (1-1/tk)*xk+1/tk*uk
+
+                uk = xk_prev+tk*(xk-xk_prev)
 
             else:
-                prior = dinv.optim.L1Prior()
-                L = dinv.optim.TVPrior().nabla
-                L_adjoint = dinv.optim.TVPrior().nabla_adjoint
 
-                x_prev = xk.clone()
-                vk = L(xk)
+                x_prev = xk.clone().to(device)
 
-                xk = data_fidelity.prox(xk - tau*L_adjoint(vk), y,
-                                        self.A.physics)
-                tmp = vk + self.gamma * L(2*xk-x_prev)
-                vk = tmp - self.gamma*prior.prox(tmp/self.gamma,
-                                                 gamma=reg/self.gamma)
+                xk = xk - tau*data_fidelity.grad(xk, y,
+                                                 self.A.physics) - tau*L_adjoint(vk)
+                tmp = vk+self.gamma*L(2*xk-x_prev)
+                vk = tmp - self.gamma*prior.prox(tmp/self.gamma, gamma=reg/self.gamma)
 
-        self.out = xk.clone()
+        self.out = xk.clone().to(device)
         self.out = self.out.squeeze()
 
     def get_result(self):
