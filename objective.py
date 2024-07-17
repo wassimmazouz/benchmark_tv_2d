@@ -3,8 +3,6 @@ from benchopt import safe_import_context
 
 with safe_import_context() as import_ctx:
     import numpy as np
-    import torch
-    import deepinv as dinv
     from benchmark_utils.shared import huber
     from benchmark_utils.matrix_op import grad
 
@@ -13,15 +11,16 @@ class Objective(BaseObjective):
     min_benchopt_version = "1.5"
     name = "TV2D"
 
-    parameters = {'reg': [0.1, 0.5, 1, 2],
-                  'delta': [0.9],
-                  'isotropy': ["anisotropic", "isotropic"],
-                  'data_fit': ["lsq", "huber"]}
+    parameters = {
+        'reg': [0.1, 0.5, 1, 2],
+        'delta': [0.9],
+        'isotropy': ["anisotropic", "isotropic"],
+        'data_fit': ["lsq", "huber"]
+    }
 
     def set_data(self, A, y):
         self.A = A
         self.y = y
-        self.reg = self.reg
 
     def evaluate_result(self, u):
         R = self.y - self.A @ u
@@ -39,7 +38,7 @@ class Objective(BaseObjective):
         return loss + self.reg * penalty
 
     def get_one_result(self):
-        return np.zeros(self.y.shape)
+        return dict(u=np.zeros(self.y.shape))
 
     def get_objective(self):
         return dict(A=self.A,

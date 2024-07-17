@@ -44,6 +44,7 @@ class Solver(BaseSolver):
     def run(self, callback):
         n, m = self.y.shape
         # initialisation
+        self.u = np.zeros((n, m))
         u = np.zeros((n, m))
         v = np.zeros((n, m))
         vh = np.zeros((n, m))  # we consider non-cyclic finite difference
@@ -95,7 +96,7 @@ class Solver(BaseSolver):
             u_tmp = (Aty + div(vh, vv)).flatten()
             u, _ = cg(AtA, u_tmp, x0=u.flatten(), tol=tol_cg)
             u = u.reshape((n, m))
-        self.u = u
+            self.u = u
 
     def get_result(self):
         return dict(u=self.u)

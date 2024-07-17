@@ -57,6 +57,7 @@ class Solver(BaseSolver):
     def run(self, callback):
         n, m = self.y.shape
         # initialisation
+        self.u = np.zeros((n, m))
         u = np.zeros((n, m))
         zh = np.zeros((n, m))  # we consider non-cyclic finite difference
         zv = np.zeros((n, m))
@@ -105,7 +106,7 @@ class Solver(BaseSolver):
             zv = (gv * gamma + muv - zv) / gamma
             muh += gamma * (gh - zh)
             muv += gamma * (gv - zv)
-        self.u = u
+            self.u = u
 
     def get_result(self):
         return dict(u=self.u)

@@ -8,7 +8,7 @@ with safe_import_context() as import_ctx:
 
 
 class Solver(BaseSolver):
-    name = 'deepinv'
+    name = 'Chambolle-Pock'
 
     parameters = {
         'inner': [True, False],
@@ -53,7 +53,8 @@ class Solver(BaseSolver):
                 x_prev = xk.clone()
                 xk = data_fidelity.prox(xk - tau*vk, y, self.A.physics)
                 tmp = vk + self.gamma * (2 * xk - x_prev)
-                vk = tmp - self.gamma * prior.prox(tmp/self.gamma, gamma=reg/self.gamma)
+                vk = tmp - self.gamma * prior.prox(tmp/self.gamma,
+                                                   gamma=reg/self.gamma)
 
             else:
                 prior = dinv.optim.L1Prior()
@@ -66,7 +67,8 @@ class Solver(BaseSolver):
                 xk = data_fidelity.prox(xk - tau*L_adjoint(vk), y,
                                         self.A.physics)
                 tmp = vk + self.gamma * L(2*xk-x_prev)
-                vk = tmp - self.gamma*prior.prox(tmp/self.gamma, gamma=reg/self.gamma)
+                vk = tmp - self.gamma*prior.prox(tmp/self.gamma,
+                                                 gamma=reg/self.gamma)
 
         self.out = xk.clone()
         self.out = self.out.squeeze()
