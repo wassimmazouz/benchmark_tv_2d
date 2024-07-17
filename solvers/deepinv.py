@@ -56,8 +56,9 @@ class Solver(BaseSolver):
 
         for _ in range(n_iter):
             if self.inner:
-                x_prev = xk.clone()
-                xk = data_fidelity.prox(xk - tau*vk, y, self.A.physics)
+                x_prev = xk.clone().to(device)
+                xk = data_fidelity.prox(xk - tau*vk, y, self.A.physics,
+                                        gamma=tau)
                 tmp = vk + self.gamma * (2 * xk - x_prev)
                 vk = tmp - self.gamma * prior.prox(tmp/self.gamma,
                                                    gamma=reg/self.gamma)
