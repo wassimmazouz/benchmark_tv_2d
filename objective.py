@@ -13,7 +13,7 @@ class Objective(BaseObjective):
     min_benchopt_version = "1.5"
     name = "TV2D"
 
-    parameters = {'reg': [1],
+    parameters = {'reg': [0.1, 0.5, 1, 2],
                   'delta': [0.9],
                   'isotropy': ["anisotropic", "isotropic"],
                   'data_fit': ["lsq", "huber"]}
