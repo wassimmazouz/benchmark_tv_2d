@@ -6,7 +6,7 @@ with safe_import_context() as import_ctx:
 
 
 class Solver(BaseSolver):
-    name = 'Douglas-Rashford'
+    name = 'Douglas-Rachford'
 
     parameters = {
         'tau_mult': [0.1, 0.5, 0.9],

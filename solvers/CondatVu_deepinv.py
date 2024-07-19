@@ -54,7 +54,7 @@ class Solver(BaseSolver):
 
             xk = xk - tau * data_fidelity.grad(xk, y, self.A.physics) \
                 - tau * L_adjoint(vk)
-            tmp = vk+self.gamma * L(2*xk-x_prev)
+            tmp = vk + self.gamma * L(2*xk-x_prev)
             vk = tmp - self.gamma * prior.prox(tmp/self.gamma,
                                                gamma=self.reg/self.gamma)
 
