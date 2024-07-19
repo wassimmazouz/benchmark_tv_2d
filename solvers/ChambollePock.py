@@ -14,14 +14,14 @@ class Solver(BaseSolver):
         'gamma': [0.1, 1, 10]
     }
 
-    def skip(self, A, reg, delta, data_fit, y, isotropy):
+    def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         if data_fit == 'huber':
             return True, f"solver does not work with {data_fit} loss"
         elif isotropy != 'anisotropic':
             return True, f"solver does not work with {isotropy} regularization"
         return False, None
 
-    def set_objective(self, A, reg, delta, data_fit, y, isotropy):
+    def set_objective(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         self.A, self.reg, self.y = A, reg, torch.from_numpy(y)
         self.delta, self.data_fit = delta, data_fit
         self.isotropy = isotropy
@@ -34,7 +34,6 @@ class Solver(BaseSolver):
 
         y = self.y
         x = y.clone().to(device)
-        x = x.unsqueeze(0)
         xk = x.unsqueeze(0)
 
         data_fidelity = dinv.optim.L2()

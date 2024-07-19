@@ -24,7 +24,7 @@ class Solver(BaseSolver):
                   'ratio': [10.],
                   'use_acceleration': [True]}
 
-    def skip(self, A, reg, delta, data_fit, y, isotropy):
+    def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         if data_fit == 'huber':
             return True, "solver does not work with huber loss"
         elif max(y.shape) > 1e4:
@@ -35,7 +35,7 @@ class Solver(BaseSolver):
             return True, "solver only works for denoising"
         return False, None
 
-    def set_objective(self, A, reg, delta, data_fit, y, isotropy):
+    def set_objective(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         self.reg, self.delta = reg, delta
         self.isotropy = isotropy
         self.data_fit = data_fit

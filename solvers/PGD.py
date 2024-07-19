@@ -29,12 +29,12 @@ class Solver(BaseSolver):
     ],
         'use_acceleration': [False, True]}
 
-    def skip(self, A, reg, delta, data_fit, y, isotropy):
+    def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         if isotropy != "anisotropic":
             return True, "prox-tv supports only anisoTV"
         return False, None
 
-    def set_objective(self, A, reg, delta, data_fit, y, isotropy):
+    def set_objective(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         self.reg, self.delta = reg, delta
         self.isotropy = isotropy
         self.data_fit = data_fit

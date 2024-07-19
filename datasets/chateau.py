@@ -4,7 +4,6 @@ with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch
     from benchmark_utils.deepinv_funcs import DeepInverseOperator
-    from benchmark_utils.shared import rgb_to_grayscale
 
 
 class Dataset(BaseDataset):
@@ -28,7 +27,8 @@ class Dataset(BaseDataset):
             "chateau-azay-le-rideau.jpg?download=true"
         )
         x = dinv.utils.load_url_image(url=url, img_size=100).to(device)
-        x_gray = rgb_to_grayscale(x.squeeze(0))
-        op = DeepInverseOperator(tensor_size=x_gray.shape, type_A=self.type_A)
-        y = op.physics(x_gray.unsqueeze(0))
-        return dict(A=op, y=y.numpy().squeeze())
+        op = DeepInverseOperator(tensor_size=x.shape[1:], type_A=self.type_A)
+        y = op.physics(x)
+        random_tensor = torch.randn(x.shape)
+        Anorm2 = op.physics.compute_norm(random_tensor)
+        return dict(A=op, y=y.numpy().squeeze(), Anorm2=Anorm2)

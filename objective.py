@@ -18,9 +18,10 @@ class Objective(BaseObjective):
         'data_fit': ["lsq", "huber"]
     }
 
-    def set_data(self, A, y):
+    def set_data(self, A, y, Anorm2):
         self.A = A
         self.y = y
+        self.Anorm2 = Anorm2
 
     def evaluate_result(self, u):
         R = self.y - self.A @ u
@@ -42,6 +43,7 @@ class Objective(BaseObjective):
 
     def get_objective(self):
         return dict(A=self.A,
+                    Anorm2=self.Anorm2,
                     reg=self.reg,
                     delta=self.delta,
                     data_fit=self.data_fit,

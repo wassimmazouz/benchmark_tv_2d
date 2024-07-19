@@ -43,27 +43,29 @@ class Solver(BaseSolver):
     # any parameter defined here is accessible as a class attribute
     parameters = {'gamma': [0.1]}
 
-    def skip(self, A, reg, delta, data_fit, y, isotropy):
+    def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         if isotropy not in ["anisotropic", "isotropic"]:
             return True, "Only aniso and isoTV are implemented yet"
         return False, None
 
-    def set_objective(self, A, reg, delta, data_fit, y, isotropy):
+    def set_objective(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         self.reg, self.delta = reg, delta
         self.isotropy = isotropy
         self.data_fit = data_fit
         self.A, self.y = A, y
+        self.Anorm2 = Anorm2
 
     def run(self, callback):
-        n, m = self.y.shape
-        # initialisation
-        self.u = np.zeros((n, m))
-        u = np.zeros((n, m))
-        zh = np.zeros((n, m))  # we consider non-cyclic finite difference
-        zv = np.zeros((n, m))
-        muh = np.zeros((n, m))  # we consider non-cyclic finite difference
-        muv = np.zeros((n, m))
-        # prox of sigma * G*, where G* is conjugate of G
+        c, n, m = self.y.shape
+        # Initialization
+        self.u = np.zeros((c, n, m))
+        u = np.zeros((c, n, m))
+        zh = np.zeros((c, n, m))  # We consider non-cyclic finite difference
+        zv = np.zeros((c, n, m))
+        muh = np.zeros((c, n, m))  # We consider non-cyclic finite difference
+        muv = np.zeros((c, n, m))
+
+        # Prox of sigma * G*, where G* is conjugate of G
         # G is reg * l1-norm
         proj = {
             'anisotropic': dual_prox_tv_aniso,
@@ -72,20 +74,27 @@ class Solver(BaseSolver):
 
         gamma = self.gamma
         tol_cg = 1e-12
-        Aty = self.A.T @ self.y
-        # D @ x = grad(x)
-        # D.T @ x = - div(xh, xv)
-        AtA_gDtD = LinearOperator(shape=(n*m, n*m),
-                                  matvec=lambda x: self.A.T @ (
-                                      self.A @ x.reshape((n, m)))
-                                  - gamma * div(grad(x.reshape((n, m)))[0],
-                                                grad(x.reshape((n, m)))[1]))
+        print('self.y.shape:', self.y.shape)
+        Aty = self.A.T @ self.y  # Flatten y to match A's input shape
+
+        def matvec_rgb(x):
+            x = x.reshape((c, n, m))
+            result = np.zeros_like(x)
+            for i in range(c):
+                Ax = self.A @ x[i].reshape(-1)
+                AtAx = self.A.T @ Ax
+                gh, gv = grad(x[i])
+                result[i] = AtAx.reshape((n, m)) - gamma * div(gh, gv)
+            return result.ravel()
+
+        AtA_gDtD = LinearOperator(shape=(c*n*m, c*n*m), matvec=matvec_rgb)
+
         while callback():
             if self.data_fit == 'lsq':
                 u_tmp = (Aty + div(muh, muv) - gamma * div(zh, zv)).flatten()
                 u, _ = cg(AtA_gDtD, u_tmp, x0=u.flatten(), tol=tol_cg)
+                u = u.reshape((c, n, m))
             elif self.data_fit == 'huber':
-
                 def func(u):
                     return loss(self.y, self.A, u, self.delta,
                                 n, m, zh, zv, muh, muv, gamma)
@@ -96,16 +105,18 @@ class Solver(BaseSolver):
 
                 u = minimize(func, x0=u.flatten(), jac=jac,
                              method='BFGS', tol=tol_cg).x
+                u = u.reshape((c, n, m))
 
-            u = u.reshape((n, m))
-            gh, gv = grad(u)
-            zh, zv = proj(gh * gamma + muh,
-                          gv * gamma + muv,
-                          self.reg)
-            zh = (gh * gamma + muh - zh) / gamma
-            zv = (gv * gamma + muv - zv) / gamma
-            muh += gamma * (gh - zh)
-            muv += gamma * (gv - zv)
+            for i in range(c):
+                gh, gv = grad(u[i])
+                zh[i], zv[i] = proj(gh * gamma + muh[i],
+                                    gv * gamma + muv[i],
+                                    self.reg)
+                zh[i] = (gh * gamma + muh[i] - zh[i]) / gamma
+                zv[i] = (gv * gamma + muv[i] - zv[i]) / gamma
+                muh[i] += gamma * (gh - zh[i])
+                muv[i] += gamma(gv - zv[i])
+
             self.u = u
 
     def get_result(self):
