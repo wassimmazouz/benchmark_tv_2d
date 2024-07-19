@@ -14,6 +14,7 @@ class Dataset(BaseDataset):
     # List of parameters to generate the datasets. The benchmark will consider
     # the cross product for each key in the dictionary.
     parameters = {
+        'type_A': ['denoising', 'inpainting']
     }
 
     def get_data(self):
@@ -28,7 +29,6 @@ class Dataset(BaseDataset):
         )
         x = dinv.utils.load_url_image(url=url, img_size=100).to(device)
         x_gray = rgb_to_grayscale(x.squeeze(0))
-        op = DeepInverseOperator(tensor_size=x_gray.shape)
-
+        op = DeepInverseOperator(tensor_size=x_gray.shape, type_A=self.type_A)
         y = op.physics(x_gray.unsqueeze(0))
         return dict(A=op, y=y.numpy().squeeze())

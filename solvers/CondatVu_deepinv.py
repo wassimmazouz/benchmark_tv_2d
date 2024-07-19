@@ -3,6 +3,7 @@ from benchopt import BaseSolver, safe_import_context
 with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch
+    from benchmark_utils.deepinv_funcs import L12Prior
 
 
 class Solver(BaseSolver):
@@ -39,7 +40,7 @@ class Solver(BaseSolver):
         data_fidelity = dinv.optim.L2()
         L = dinv.optim.TVPrior().nabla
         L_adjoint = dinv.optim.TVPrior().nabla_adjoint
-        prior = dinv.optim.L1Prior()
+        prior = L12Prior()
         tensor_shape = xk.shape
         random_tensor = torch.randn(tensor_shape)
         Anorm2 = self.A.physics.compute_norm(random_tensor)
