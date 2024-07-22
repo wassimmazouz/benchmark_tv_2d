@@ -11,7 +11,7 @@ class Solver(BaseSolver):
 
     parameters = {
         'tau_mult': [0.1, 0.5, 0.9],
-        'gamma': [0.1, 1, 10]
+        'gamma': [0.35, 1, 10]
     }
 
     def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
@@ -41,13 +41,13 @@ class Solver(BaseSolver):
         L_adjoint = dinv.optim.TVPrior().nabla_adjoint
         prior = L12Prior()
         Lnorm2 = 8
-        tau = self.tau_mult / (Lnorm2 * self.gamma)
+        self.tau = self.tau_mult / (Lnorm2 * self.gamma)
         vk = L(xk)
 
         for _ in range(n_iter):
             x_prev = xk.clone()
-            xk = data_fidelity.prox(xk - tau*L_adjoint(vk),
-                                    y, self.A.physics, gamma=tau)
+            xk = data_fidelity.prox(xk - self.tau*L_adjoint(vk),
+                                    y, self.A.physics, gamma=self.tau)
             tmp = vk+self.gamma*L(2*xk-x_prev)
             vk = tmp - self.gamma * prior.prox(tmp/self.gamma,
                                                gamma=self.reg/self.gamma)
@@ -56,4 +56,4 @@ class Solver(BaseSolver):
         self.out = self.out.squeeze()
 
     def get_result(self):
-        return dict(u=self.out.numpy())
+        return dict(name=f'Chambolle-Pock[tau={self.tau},gamma={self.gamma}]', u=self.out.numpy())

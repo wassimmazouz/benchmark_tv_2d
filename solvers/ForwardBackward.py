@@ -36,14 +36,14 @@ class Solver(BaseSolver):
 
         data_fidelity = dinv.optim.L2()
         prior = dinv.optim.TVPrior()
-        gamma = self.gamma_mult / self.Anorm2
+        self.gamma = self.gamma_mult / self.Anorm2
 
         for _ in range(n_iter):
-            xk = xk - gamma * data_fidelity.grad(xk, y, self.A.physics)
-            xk = prior.prox(xk,  gamma=gamma*self.reg)
+            xk = xk - self.gamma * data_fidelity.grad(xk, y, self.A.physics)
+            xk = prior.prox(xk,  gamma=self.gamma*self.reg)
 
         self.out = xk.clone().to(device)
         self.out = self.out.squeeze()
 
     def get_result(self):
-        return dict(u=self.out.numpy())
+        return dict(name=f'Forward-Backward[gamma={self.gamma}]', u=self.out.numpy())

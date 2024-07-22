@@ -10,7 +10,7 @@ class Solver(BaseSolver):
 
     parameters = {
         'tau_mult': [0.1, 0.5, 0.9],
-        'gamma': [0.1, 1, 10]
+        'gamma': [0.001, 0.1, 1, 10]
     }
 
     def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
@@ -37,15 +37,15 @@ class Solver(BaseSolver):
 
         data_fidelity = dinv.optim.L2()
         prior = dinv.optim.TVPrior()
-        tau = self.tau_mult / self.gamma
-        vk = xk
+        self.tau = self.tau_mult / self.gamma
+        vk = xk.clone()
 
         for _ in range(n_iter):
 
-            x_prev = xk.clone()
+            x_prev = xk.clone
 
-            xk = data_fidelity.prox(xk - tau*vk, y, self.A.physics, gamma=tau)
-            tmp = vk+self.gamma*(2*xk-x_prev)
+            xk = data_fidelity.prox(xk - self.tau*vk, y, self.A.physics, gamma=self.tau)
+            tmp = vk + self.gamma * (2 * xk - x_prev)
             vk = tmp - self.gamma*prior.prox(tmp/self.gamma,
                                              gamma=self.reg/self.gamma)
 
@@ -53,4 +53,4 @@ class Solver(BaseSolver):
         self.out = self.out.squeeze()
 
     def get_result(self):
-        return dict(u=self.out.numpy())
+        return dict(name=f'Douglas-Rachford[tau={self.tau},gamma={self.gamma}]', u=self.out.numpy())
