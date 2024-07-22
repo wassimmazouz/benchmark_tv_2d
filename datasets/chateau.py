@@ -31,4 +31,5 @@ class Dataset(BaseDataset):
         y = op.physics(x)
         random_tensor = torch.randn(x.shape)
         Anorm2 = op.physics.compute_norm(random_tensor)
-        return dict(x_true=x, type_A=self.type_A, A=op, y=y.numpy().squeeze(), Anorm2=Anorm2)
+        return dict(x_true=x, type_A=self.type_A, A=op, y=y.numpy().squeeze(),
+                    Anorm2=Anorm2)

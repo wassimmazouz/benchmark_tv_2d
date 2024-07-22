@@ -62,4 +62,5 @@ class Objective(BaseObjective):
         return (np.abs(gh) + np.abs(gv)).sum()
 
     def save_final_results(self, name, u):
-        return [name+f', type_A = {self.type_A}', self.y, self.x_true, torch.from_numpy(u)]
+        return [name+f', type_A = {self.type_A}', self.y, self.x_true,
+                torch.from_numpy(u)]

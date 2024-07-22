@@ -46,4 +46,5 @@ class Solver(BaseSolver):
         self.out = self.out.squeeze()
 
     def get_result(self):
-        return dict(name=f'Forward-Backward[gamma={self.gamma}]', u=self.out.numpy())
+        return dict(name=f'Forward-Backward[gamma={self.gamma}]',
+                    u=self.out.numpy())

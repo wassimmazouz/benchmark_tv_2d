@@ -60,4 +60,5 @@ class Solver(BaseSolver):
         self.out = self.out.squeeze()
 
     def get_result(self):
-        return dict(name=f'Condat-Vu[tau={self.tau},gamma={self.gamma}]', u=self.out.numpy())
+        return dict(name=f'Condat-Vu[tau={self.tau},gamma={self.gamma}]',
+                    u=self.out.numpy())

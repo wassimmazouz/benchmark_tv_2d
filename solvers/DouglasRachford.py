@@ -44,7 +44,8 @@ class Solver(BaseSolver):
 
             x_prev = xk.clone
 
-            xk = data_fidelity.prox(xk - self.tau*vk, y, self.A.physics, gamma=self.tau)
+            xk = data_fidelity.prox(xk - self.tau*vk, y, self.A.physics,
+                                    gamma=self.tau)
             tmp = vk + self.gamma * (2 * xk - x_prev)
             vk = tmp - self.gamma*prior.prox(tmp/self.gamma,
                                              gamma=self.reg/self.gamma)
@@ -53,4 +54,5 @@ class Solver(BaseSolver):
         self.out = self.out.squeeze()
 
     def get_result(self):
-        return dict(name=f'Douglas-Rachford[tau={self.tau},gamma={self.gamma}]', u=self.out.numpy())
+        return dict(name=f'Douglas-Rachford[tau={self.tau},'
+                    'gamma={self.gamma}]', u=self.out.numpy())
