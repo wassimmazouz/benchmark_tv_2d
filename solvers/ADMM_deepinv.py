@@ -3,15 +3,14 @@ from benchopt import BaseSolver, safe_import_context
 with safe_import_context() as import_ctx:
     import deepinv as dinv
     import torch
-    from benchmark_utils.deepinv_funcs import L12Prior
 
 
 class Solver(BaseSolver):
-    name = 'Chambolle-Pock'
+    name = 'ADMM DeepInv'
 
     parameters = {
-        'tau_mult': [0.1, 0.5, 0.9],
-        'gamma': [0.35, 1, 10]
+        'tau': [0.1, 1, 10],
+        'rho': [0.1, 1, 10]
     }
 
     def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
@@ -25,6 +24,7 @@ class Solver(BaseSolver):
         self.A, self.reg, self.y = A, reg, torch.from_numpy(y)
         self.delta, self.data_fit = delta, data_fit
         self.isotropy = isotropy
+        self.Anorm2 = Anorm2
 
     def run(self, n_iter):
         if torch.cuda.is_available():
@@ -32,29 +32,31 @@ class Solver(BaseSolver):
         else:
             device = 'cpu'
 
-        y = self.y
-        x = y.clone().to(device)
-        xk = x.unsqueeze(0)
+        y = self.y.to(device)
+        x = torch.zeros_like(y, device=device)
+        z = torch.zeros_like(y, device=device)
+        u = torch.zeros_like(y, device=device)
 
         data_fidelity = dinv.optim.L2()
         L = dinv.optim.TVPrior().nabla
         L_adjoint = dinv.optim.TVPrior().nabla_adjoint
-        prior = L12Prior()
-        Lnorm2 = 8
-        self.tau = self.tau_mult / (Lnorm2 * self.gamma)
-        vk = L(xk)
+        prior = dinv.optim.TVPrior()
 
         for _ in range(n_iter):
-            x_prev = xk.clone().to(device)
-            xk = data_fidelity.prox(xk - self.tau*L_adjoint(vk),
-                                    y, self.A.physics, gamma=self.tau)
-            tmp = vk+self.gamma*L(2*xk-x_prev)
-            vk = tmp - self.gamma * prior.prox(tmp/self.gamma,
-                                               gamma=self.reg/self.gamma)
+            # Update x
+            x = data_fidelity.prox(z - u, y, self.A.physics, gamma=self.tau)
 
-        self.out = xk.clone().to(device)
+            # Update z
+            z = L(x + u)
+            z = prior.prox(z, gamma=self.reg / self.tau)
+            z = L_adjoint(z)
+
+            # Update dual variable u
+            u += x - z
+
+        self.out = x.clone().to(device)
         self.out = self.out.squeeze()
 
     def get_result(self):
-        return dict(name=f'Chambolle-Pock[tau={self.tau},gamma={self.gamma}]',
+        return dict(name=f'ADMM[tau={self.tau},rho={self.rho}]',
                     u=self.out.numpy())

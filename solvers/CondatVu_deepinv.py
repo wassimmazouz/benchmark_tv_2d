@@ -48,7 +48,7 @@ class Solver(BaseSolver):
 
         for _ in range(n_iter):
 
-            x_prev = xk.clone()
+            x_prev = xk.clone().to(device)
 
             xk = xk - self.tau * data_fidelity.grad(xk, y, self.A.physics) \
                 - self.tau * L_adjoint(vk)
