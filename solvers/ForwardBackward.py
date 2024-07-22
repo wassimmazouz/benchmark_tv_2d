@@ -23,6 +23,7 @@ class Solver(BaseSolver):
         self.A, self.reg, self.y = A, reg, torch.from_numpy(y)
         self.delta, self.data_fit = delta, data_fit
         self.isotropy = isotropy
+        self.Anorm2 = Anorm2
 
     def run(self, n_iter):
         if torch.cuda.is_available():
