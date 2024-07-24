@@ -1,17 +1,14 @@
 from benchopt import BaseSolver, safe_import_context
+import torch
 
 with safe_import_context() as import_ctx:
     import deepinv as dinv
-    import torch
+    from benchmark_utils.deepinv_funcs import L12Prior
 
 
 class Solver(BaseSolver):
     name = 'ADMM DeepInv'
-
-    parameters = {
-        'tau': [0.1, 1, 10],
-        'rho': [0.1, 1, 10]
-    }
+    parameters = {'gamma': [0.1, 0.5, 1]}
 
     def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         if data_fit == 'huber':
@@ -27,36 +24,35 @@ class Solver(BaseSolver):
         self.Anorm2 = Anorm2
 
     def run(self, n_iter):
-        if torch.cuda.is_available():
-            device = dinv.utils.get_freer_gpu()
-        else:
-            device = 'cpu'
-
-        y = self.y.to(device)
-        x = torch.zeros_like(y, device=device)
-        z = torch.zeros_like(y, device=device)
-        u = torch.zeros_like(y, device=device)
-
-        data_fidelity = dinv.optim.L2()
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        y = self.y.to(device).unsqueeze(0)
         L = dinv.optim.TVPrior().nabla
-        L_adjoint = dinv.optim.TVPrior().nabla_adjoint
-        prior = dinv.optim.TVPrior()
+        prior = L12Prior()
+        xk = torch.zeros_like(y, device=device, requires_grad=True)
+        yk = torch.zeros_like(L(xk), device=device)
+        vk = torch.zeros_like(yk, device=device)
+
+        optimizer = torch.optim.LBFGS(
+            [xk], lr=1, max_iter=n_iter, tolerance_grad=1e-10,
+            tolerance_change=1e-10)
+
+        def closure():
+            optimizer.zero_grad()
+            diff = L(xk) - yk + vk
+            dtf = 0.5 * torch.sum(diff ** 2)
+            diff2 = self.A.operator(xk) - y
+            pen = torch.sum(diff2 ** 2) / (2 * self.gamma)
+            loss = dtf + pen
+            return loss
 
         for _ in range(n_iter):
-            # Update x
-            x = data_fidelity.prox(z - u, y, self.A.physics, gamma=self.tau)
+            optimizer.step(closure)
+            with torch.no_grad():
+                yk = prior.prox(vk + L(xk), gamma=self.reg / self.gamma)
+                vk += L(xk) - yk
 
-            # Update z
-            z = L(x + u)
-            z = prior.prox(z, gamma=self.reg / self.tau)
-            z = L_adjoint(z)
-
-            # Update dual variable u
-            u += x - z
-
-        self.out = x.clone().to(device)
-        self.out = self.out.squeeze()
+        self.out = xk.detach().squeeze(0).clone().to('cpu')
 
     def get_result(self):
-        return dict(name=f'ADMM[tau={self.tau},rho={self.rho}]',
+        return dict(name=f'ADMM DeepInv[gamma={self.gamma}]',
                     u=self.out.numpy())
