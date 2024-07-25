@@ -9,13 +9,13 @@ class Solver(BaseSolver):
     name = 'Douglas-Rachford'
 
     parameters = {
-        'gamma': [0.01]  # [0.01, 0.1, 1, 10]
+        'gamma': [0.1, 1, 10]
     }
 
     def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         if data_fit == 'huber':
             return True, f"solver does not work with {data_fit} loss"
-        elif isotropy != 'anisotropic':
+        elif isotropy == 'anisotropic':
             return True, f"solver does not work with {isotropy} regularization"
         return False, None
 
@@ -43,11 +43,11 @@ class Solver(BaseSolver):
             xk = data_fidelity.prox(vk, y, self.A.physics,
                                     gamma=self.gamma)
             vk = vk + self.gamma*prior.prox(2*xk - vk,
-                                            gamma=self.gamma) - xk
+                                            gamma=self.reg*self.gamma) - xk
 
         self.out = xk.clone().to(device)
         self.out = self.out.squeeze()
 
     def get_result(self):
-        return dict(name=f'Douglas-Rachford['
-                    'gamma={self.gamma}]', u=self.out.numpy())
+        return dict(name=f'Douglas-Rachford[gamma={self.gamma}]',
+                    u=self.out.numpy())

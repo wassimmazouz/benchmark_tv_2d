@@ -13,7 +13,7 @@ class Objective(BaseObjective):
     name = "TV2D"
 
     parameters = {
-        'reg': [0.1, 0.5, 1, 2],
+        'reg': [0.1, 0.5, 1],
         'delta': [0.9],
         'isotropy': ["anisotropic", "isotropic"],
         'data_fit': ["lsq", "huber"]

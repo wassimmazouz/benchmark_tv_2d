@@ -13,7 +13,7 @@ class Solver(BaseSolver):
     def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         if data_fit == 'huber':
             return True, f"solver does not work with {data_fit} loss"
-        elif isotropy != 'anisotropic':
+        elif isotropy == 'anisotropic':
             return True, f"solver does not work with {isotropy} regularization"
         return False, None
 
