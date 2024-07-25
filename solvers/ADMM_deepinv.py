@@ -4,11 +4,20 @@ import torch
 with safe_import_context() as import_ctx:
     import deepinv as dinv
     from benchmark_utils.deepinv_funcs import L12Prior
+    import torch.optim as optim
+
+
+def func(A, L, x, y, yk, vk, gamma):
+    diff = L(x) - yk + vk
+    dtf = 0.5 * torch.sum(diff ** 2)
+    diff2 = A.operator(x) - y
+    pen = torch.sum(diff2 ** 2) / (2 * gamma)
+    return dtf + pen
 
 
 class Solver(BaseSolver):
     name = 'ADMM DeepInv'
-    parameters = {'gamma': [0.1, 0.5, 1]}
+    parameters = {'gamma': [0.5, 1, 2]}
 
     def skip(self, A, Anorm2, reg, delta, data_fit, y, isotropy):
         if data_fit == 'huber':
@@ -25,31 +34,28 @@ class Solver(BaseSolver):
 
     def run(self, n_iter):
         device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-        y = self.y.to(device).unsqueeze(0)
+        y = self.y.clone().to(device)
+        y = y.unsqueeze(0)
         L = dinv.optim.TVPrior().nabla
         prior = L12Prior()
-        xk = torch.zeros_like(y, device=device, requires_grad=True)
+
+        xk = torch.zeros_like(y, device=device).requires_grad_()
         yk = torch.zeros_like(L(xk), device=device)
         vk = torch.zeros_like(yk, device=device)
-
-        optimizer = torch.optim.LBFGS(
-            [xk], lr=1, max_iter=n_iter, tolerance_grad=1e-10,
-            tolerance_change=1e-10)
+        optimizer = optim.LBFGS([xk])
 
         def closure():
             optimizer.zero_grad()
-            diff = L(xk) - yk + vk
-            dtf = 0.5 * torch.sum(diff ** 2)
-            diff2 = self.A.operator(xk) - y
-            pen = torch.sum(diff2 ** 2) / (2 * self.gamma)
-            loss = dtf + pen
+            loss = func(self.A, L, xk, y, yk, vk, self.gamma)
+            loss.backward(retain_graph=True)
             return loss
 
         for _ in range(n_iter):
             optimizer.step(closure)
-            with torch.no_grad():
-                yk = prior.prox(vk + L(xk), gamma=self.reg / self.gamma)
-                vk += L(xk) - yk
+
+            yk = prior.prox(vk + L(xk), gamma=self.reg/self.gamma)
+
+            vk += L(xk) - yk
 
         self.out = xk.detach().squeeze(0).clone().to('cpu')
 
