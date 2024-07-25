@@ -35,7 +35,6 @@ class Solver(BaseSolver):
         y = self.y
         x = y.clone().to(device)
         xk = x.unsqueeze(0)
-        print(xk.shape)
 
         data_fidelity = dinv.optim.L2()
         L = dinv.optim.TVPrior().nabla
@@ -44,9 +43,6 @@ class Solver(BaseSolver):
         Lnorm2 = 8
         self.tau = self.tau_mult / (Lnorm2 * self.gamma)
         vk = L(xk)
-        print('Inside func:')
-        print('xk.shape=', xk.shape)
-        print('vk.shape=', vk.shape)
         for _ in range(n_iter):
             x_prev = xk.clone().to(device)
             xk = data_fidelity.prox(xk - self.tau*L_adjoint(vk),

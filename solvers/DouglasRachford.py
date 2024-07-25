@@ -42,8 +42,9 @@ class Solver(BaseSolver):
 
             xk = data_fidelity.prox(vk, y, self.A.physics,
                                     gamma=self.gamma)
-            vk = vk + self.gamma*prior.prox(2*xk - vk,
-                                            gamma=self.reg*self.gamma) - xk
+
+            vk = vk + prior.prox(2*xk - vk,
+                                 gamma=self.reg*self.gamma) - xk
 
         self.out = xk.clone().to(device)
         self.out = self.out.squeeze()
